@@ -1,0 +1,62 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Movie Photos</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        .photo-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+
+            .photo-container > div {
+                width: 18%;
+                margin-bottom: 20px;
+            }
+
+            .photo-container img {
+                width: 100%;
+            }
+    </style>
+    <script>
+        $(document).ready(function () {
+            var settings = {
+                async: true,
+                crossDomain: true,
+                url: '@Url.Action("GetPopularMovies", "Home")',
+                method: 'GET',
+                headers: {
+                    accept: 'application/json'
+                }
+            };
+
+            $.ajax(settings).done(function (response) {
+                console.log(response);
+
+                // Process the response and render the photos
+                var photosContainer = $('#photosContainer');
+
+                $.each(response.results, function (index, movie) {
+                    if (index >= 5) {
+                        return false; // Exit the loop after displaying 5 photos
+                    }
+
+                    var photoUrl = 'https://image.tmdb.org/t/p/w500' + movie.poster_path;
+                    var title = movie.title;
+                    var overview = movie.overview;
+
+                    // Create an HTML element to display the photo, title, and overview
+                    var html = '<div><img src="' + photoUrl + '" alt="' + title + '" /><h3>' + title + '</h3><p>' + overview + '</p></div>';
+
+                    photosContainer.append(html);
+                });
+            });
+        });
+    </script>
+</head>
+<body>
+    <div id="photosContainer" class="photo-container"></div>
+</body>
+</html>

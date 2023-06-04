@@ -1,0 +1,171 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>Real-Time Results</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        .movie-suggestion {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+            cursor: pointer;
+        }
+
+        .movie-poster {
+            width: 50px;
+            height: 75px;
+            margin-right: 10px;
+        }
+
+        .movie-title {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <input type="text" id="search-input" placeholder="Enter a movie title" />
+    </div>
+
+    <div id="suggestions-container">
+        <!-- Suggestions will be displayed here -->
+    </div>
+
+    <div id="results-container">
+        <!-- Results will be displayed here -->
+    </div>
+    @Html.AntiForgeryToken()
+    <script>
+        $(document).ready(function () {
+            // Function to fetch movie suggestions from API
+            function fetchSuggestions(query) {
+                $.ajax({
+                    url: 'https://api.themoviedb.org/3/search/movie',
+                    type: 'GET',
+                    data: {
+                        query: query,
+                        include_adult: false,
+                        language: 'en-US',
+                        page: 1
+                    },
+                    headers: {
+                        accept: 'application/json',
+                        Authorization: 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIxYjUzODhiMGRiYWE0MzJkOGI2MTEzZDU1ODNlZWI5YSIsInN1YiI6IjY0N2NjOGQ1MjYzNDYyMDExNjYxOWYyOSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.5IQedaLleYq_n90jh5g0UfWMhz3uhSbbjFjt49nWQNE'
+                    },
+                    success: function (data) {
+                        displaySuggestions(data.results);
+                    },
+                    error: function (error) {
+                        console.log(error);
+                    }
+                });
+            }
+
+            // Function to display movie suggestions
+            function displaySuggestions(suggestions) {
+                var suggestionsContainer = $('#suggestions-container');
+                suggestionsContainer.empty();
+
+                if (suggestions && suggestions.length > 0) {
+                    suggestions.forEach(function (suggestion) {
+                        var movieSuggestion = $('<div>').addClass('movie-suggestion');
+                        var moviePoster = $('<img>').addClass('movie-poster').attr('src', getImageUrl(suggestion.poster_path));
+                        var movieInfo = $('<div>');
+                        var movieTitle = $('<div>').addClass('movie-title').text(suggestion.title);
+                        var movieReleaseDate = $('<div>').text('Release Date: ' + suggestion.release_date);
+
+                        movieInfo.append(movieTitle, movieReleaseDate);
+                        movieSuggestion.append(moviePoster, movieInfo);
+                        suggestionsContainer.append(movieSuggestion);
+                    });
+                } else {
+                    var listItem = $('<div>').text('No suggestions found');
+                    suggestionsContainer.append(listItem);
+                }
+            }
+
+            // Function to fetch results from API based on selected suggestion
+            function fetchResults(query) {
+                $.ajax({
+                    url: 'https://api.themoviedb.org/3/search/movie',
+                    type: 'GET',
+                    data: {
+                        query: query,
+                        include_adult: false,
+                        language: 'en-US',
+                        page: 1
+                    },
+                    headers: {
+                        accept: 'application/json',
+                        Authorization: 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIxYjUzODhiMGRiYWE0MzJkOGI2MTEzZDU1ODNlZWI5YSIsInN1YiI6IjY0N2NjOGQ1MjYzNDYyMDExNjYxOWYyOSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.5IQedaLleYq_n90jh5g0UfWMhz3uhSbbjFjt49nWQNE'
+                    },
+                    success: function (data) {
+                        // Update the results container with the received data
+                        $('#results-container').html(JSON.stringify(data));
+                    },
+                    error: function (error) {
+                        console.log(error);
+                    }
+                });
+            }
+
+            // Function to get the full image URL
+            function getImageUrl(posterPath) {
+                if (posterPath) {
+                    return 'https://image.tmdb.org/t/p/w200' + posterPath;
+                } else {
+                    return 'https://via.placeholder.com/50x75';
+                }
+            }
+
+            // Event handler for keyup on search input
+            $('#search-input').keyup(function () {
+                var query = $(this).val().trim();
+
+                if (query.length > 0) {
+                    fetchSuggestions(query);
+                } else {
+                    $('#suggestions-container').empty();
+                }
+            });
+
+            // Event handler for click on suggestion
+            $('#suggestions-container').on('click', '.movie-suggestion', function () {
+                var selectedSuggestion = $(this).find('.movie-title').text();
+                $('#search-input').val(selectedSuggestion);
+                fetchResults(selectedSuggestion);
+            });
+        });
+
+        $(document).ready(function () {
+            // Existing code...
+
+            // Event handler for click on suggestion
+            $('#suggestions-container').on('click', '.movie-suggestion', function () {
+                var selectedSuggestion = $(this).find('.movie-title').text();
+                $('#search-input').val(selectedSuggestion);
+                // AJAX request to save the selected movie
+                $.ajax({
+                    url: '/ToDoes/AJAXCreate',
+                    type: 'POST',
+                    data: { Description: selectedSuggestion },
+                    success: function (data) {
+                        if (data.success) {
+                            alert(data.message);
+                        } else {
+                            alert('Failed to save the movie.');
+                        }
+                    },
+                    error: function (error) {
+                        console.log(error);
+                        alert('An error occurred while saving the movie.');
+                    }
+                });
+
+                fetchResults(selectedSuggestion);
+            });
+        });
+
+    </script>
+</body>
+</html>

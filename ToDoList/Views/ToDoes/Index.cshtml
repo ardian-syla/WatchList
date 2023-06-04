@@ -1,0 +1,181 @@
+﻿    @model ToDoList.Models.ToDo
+
+    @{
+        ViewBag.Title = "Index";
+    }
+
+    <style>
+        #suggestions-container {
+            margin-top: 10px;
+        }
+
+        .movie-suggestion {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+
+        .movie-poster {
+            width: 40px;
+            height: 60px;
+            margin-right: 10px;
+        }
+
+        .movie-info {
+            font-size: 14px;
+        }
+
+        .movie-title {
+            font-weight: bold;
+        }
+
+        .movie-rating {
+            margin-top: 5px;
+        }
+    </style>
+
+    <div id="tableDiv"></div>
+    <div id="todoCreateFrom">
+        @using (Ajax.BeginForm("AJAXCreate", "ToDoes", new AjaxOptions
+        {
+            InsertionMode = InsertionMode.Replace,
+            HttpMethod = "POST",
+            UpdateTargetId = "tableDiv"
+        }))
+        {
+            <div class="form-group">
+                @Html.AntiForgeryToken();
+                <div class="col-md-10">
+                    @Html.EditorFor(model => model.Title, new { htmlAttributes = new { @class = "form-control", id = "search-input" } })
+                    @Html.ValidationMessageFor(model => model.Description, "", new { @class = "text-danger" })
+                </div>
+            </div>
+            <div id="suggestions-container"></div>
+            <input type="hidden" id="moviee-description" name="Description" value="" />
+            <input type="hidden" id="movie-rating" name="Rating" />
+        }
+    </div>
+
+    @section Scripts {
+        <script src="~/Scripts/jquery.unobtrusive-ajax.min.js"></script>
+        <script src="~/Custom_Scripts/BuildTable.js"></script>
+        @Scripts.Render("~/bundles/jqueryval")
+
+        <script>
+            $(document).ready(function () {
+                var suggestionsContainer = $('#suggestions-container');
+                var resultsContainer = $('#tableDiv');
+
+                // Event handler for keyup on search input
+                $('#search-input').keyup(function () {
+                    var query = $(this).val().trim();
+
+                    if (query.length > 0) {
+                        fetchSuggestions(query);
+                    } else {
+                        suggestionsContainer.empty();
+                    }
+                });
+
+                // Function to fetch movie suggestions from API
+                function fetchSuggestions(query) {
+                    $.ajax({
+                        url: 'https://api.themoviedb.org/3/search/movie',
+                        type: 'GET',
+                        data: {
+                            query: query,
+                            include_adult: false,
+                            language: 'en-US',
+                            page: 1
+                        },
+                        headers: {
+                            accept: 'application/json',
+                            Authorization: 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIxYjUzODhiMGRiYWE0MzJkOGI2MTEzZDU1ODNlZWI5YSIsInN1YiI6IjY0N2NjOGQ1MjYzNDYyMDExNjYxOWYyOSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.5IQedaLleYq_n90jh5g0UfWMhz3uhSbbjFjt49nWQNE'
+                        },
+                        success: function (data) {
+                            displaySuggestions(data.results);
+                        },
+                        error: function (error) {
+                            console.log(error);
+                        }
+                    });
+                }
+
+                // Function to display movie suggestions
+                function displaySuggestions(suggestions) {
+                    suggestionsContainer.empty();
+
+                    if (suggestions && suggestions.length > 0) {
+                        suggestions.forEach(function (suggestion) {
+                            var movieSuggestion = $('<div>').addClass('movie-suggestion');
+                            var moviePoster = $('<img>').addClass('movie-poster').attr('src', getPosterUrl(suggestion.poster_path));
+                            var movieInfo = $('<div>').addClass('movie-info');
+                            var movieTitle = $('<div>').addClass('movie-title').text(suggestion.title);
+                            var movieRating = $('<div>').addClass('movie-rating').text('Rating: ' + suggestion.vote_average);
+
+                            movieInfo.append(movieTitle,  movieRating);
+                            movieSuggestion.append(moviePoster, movieInfo);
+                            suggestionsContainer.append(movieSuggestion);
+                        });
+                    } else {
+                        var noMoviesMessage = $('<div>').text('No movies found');
+                        suggestionsContainer.append(noMoviesMessage);
+                    }
+                }
+
+                // Function to get the full image URL
+                function getPosterUrl(posterPath) {
+                    if (posterPath) {
+                        return 'https://image.tmdb.org/t/p/w200' + posterPath;
+                    } else {
+                        return 'https://via.placeholder.com/40x60';
+                    }
+                }
+
+                // Event handler for click on suggestion
+                suggestionsContainer.on('click', '.movie-suggestion', function () {
+                    var movieTitle = $(this).find('.movie-title').text();
+                    $('#search-input').val(movieTitle);
+
+                    fetchMovieDetails(movieTitle);
+                });
+
+                // Function to fetch movie details from API
+                function fetchMovieDetails(movieTitle) {
+                    $.ajax({
+                        url: 'https://api.themoviedb.org/3/search/movie',
+                        type: 'GET',
+                        data: {
+                            query: movieTitle,
+                            include_adult: false,
+                            language: 'en-US',
+                            page: 1
+                        },
+                        headers: {
+                            accept: 'application/json',
+                            Authorization: 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIxYjUzODhiMGRiYWE0MzJkOGI2MTEzZDU1ODNlZWI5YSIsInN1YiI6IjY0N2NjOGQ1MjYzNDYyMDExNjYxOWYyOSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.5IQedaLleYq_n90jh5g0UfWMhz3uhSbbjFjt49nWQNE'
+                        },
+                        success: function (data) {
+                            if (data && data.results && data.results.length > 0) {
+                                var selectedMovie = data.results[0];
+                                var movieDescription = selectedMovie.overview;
+                                var movieRating = selectedMovie.vote_average;
+
+                                // Set the fetched details in the hidden fields
+                                $('#movie-title').val(movieTitle);
+                                $('#moviee-description').val(movieDescription);
+                                $('#movie-rating').val(movieRating);
+                            }
+
+                            // Submit the form
+                            $('#todoCreateFrom').submit();
+                        },
+                        error: function (error) {
+                            console.log(error);
+                        }
+                    });
+                }
+            });
+        </script>
+    }
